@@ -1,4 +1,4 @@
-My Little Book of Linux
+********************** My Little Book of Linux *********************************
 
 # Change hostname Ubuntu ###
 
@@ -8,3 +8,28 @@ sudo nano /etc/cloud/cloud.cfg
 
 # This will cause the set+update hostname module to not operate (if true)
 preserve_hostname: true
+
+# SSH Keys ###
+Example!!!
+ssh-keygen 
+Create key 
+
+ssh-copy-id ceph@ceph-deploy # admin mon
+ssh-copy-id ceph@ceph-node1 
+ssh-copy-id ceph@ceph-node2
+ssh-copy-id ceph@ceph-node3
+ssh-copy-id ceph@ceph-osd  #osd
+Moves keys
+
+# SUDO WITHOUT PASSWORD ###
+
+echo "ceph ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ceph
+chmod 0440 /etc/sudoers.d/ceph
+
+# Change Time Zone ###
+
+timedatectl set-timezone Africa/Johannesburg
+
+# MYSQL ROOT ALL NODE ACCESS ###
+
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'root';

@@ -1,0 +1,10 @@
+My Little Book of Linux
+
+# Change hostname Ubuntu ###
+
+hostnamectl set-hostname new-hostname
+
+sudo nano /etc/cloud/cloud.cfg
+
+# This will cause the set+update hostname module to not operate (if true)
+preserve_hostname: true

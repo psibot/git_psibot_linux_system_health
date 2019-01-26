@@ -1,0 +1,95 @@
+My Little Book op CEPH
+
+ *** DO Not create a user ceph
+
+adduser ceph-admin
+passwd ceph-admin
+
+sudo echo "ceph-admin ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ceph-admin
+sudo chmod 0440 /etc/sudoers.d/ceph-admin
+
+
+
+add Hostfile 
+
+13.56.1.20 ceph-deploy
+13.56.1.21 ceph-node1
+13.56.1.22 ceph-node2
+13.56.1.23 ceph-node3
+13.56.1.24 ceph-osd
+13.56.1.25 ceph-rgw
+
+Example!!!
+ssh-keygen 
+Create key 
+
+ssh-copy-id ceph-admin@ceph-deploy  
+ssh-copy-id ceph-admin@ceph-node1 
+ssh-copy-id ceph-admin@ceph-node2
+ssh-copy-id ceph-admin@ceph-node3
+ssh-copy-id ceph-admin@ceph-osd  
+ssh-copy-id ceph-admin@ceph-rgw  
+Moves keys
+
+
+touch ssh-ceph.sh 
+#!/bin/bash
+ssh-copy-id ceph-admin@ceph-deploy  
+ssh-copy-id ceph-admin@ceph-node1 
+ssh-copy-id ceph-admin@ceph-node2
+ssh-copy-id ceph-admin@ceph-node3
+ssh-copy-id ceph-admin@ceph-osd  
+ssh-copy-id ceph-admin@ceph-rgw 
+
+
+
+mkdir ceph-deploy
+cd ceph-deploy
+
+
+sudo sed -i 's/^mesg n$/tty -s \&\& mesg n/g' /root/.profile
+
+sudo dpkg-reconfigure debconf
+
+sudo rm /etc/apt/sources.list.d/ceph.list
+
+echo deb https://download.ceph.com/debian-luminous/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list
+
+sudo dpkg-reconfigure debconf
+sudo apt install  python-influxdb
+sudo apt install  ceph-fuse
+sudo apt install aptitude 
+sudo apt install ceph-common
+sudo pip install subprocess.run
+sudo apt install ceph-mon
+
+
+sudo apt install ceph-deploy
+
+ceph-deploy new ceph-deploy
+
+ceph-deploy install ceph-node1 ceph-node2 ceph-node3 ceph-osd ceph-rgw 
+
+ceph-deploy mon create-initial
+
+ceph-deploy admin ceph-osd
+
+ceph-deploy osd create --data /dev/sdb ceph-node1 
+ceph-deploy osd create --data /dev/sdb ceph-node2
+ceph-deploy osd create --data /dev/sdb ceph-node3
+
+ceph-deploy osd create --data /dev/sdc ceph-node1 
+ceph-deploy osd create --data /dev/sdc ceph-node2
+ceph-deploy osd create --data /dev/sdc ceph-node3
+
+ceph-deploy mds create ceph-node2 ceph-node3
+
+ceph-deploy install ceph-deploy
+ceph-deploy mon add ceph-deploy
+
+sudo ceph quorum_status --format json-pretty
+
+ceph-deploy mgr create ceph-node2 ceph-node3
+
+ceph-deploy rgw create ceph-rgw 
+

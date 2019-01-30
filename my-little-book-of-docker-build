@@ -1,0 +1,104 @@
+% My Little Book of Dockerfile build  %%%
+
+
+[coenraadl@rdr-ap-cld1m Go_tut]$ cat Dockerfile.build 
+FROM golang:alpine
+
+RUN apk update && apk add git && apk add ca-certificates
+
+RUN adduser -D -g ' ' appuser
+
+COPY ./src  $GOPATH/src/
+
+WORKDIR $GOPATH/src/
+
+RUN go get -d -v 
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/go-example
+
+
+
+
+1.Build image  
+docker build -f Dockerfile.build  -t "go-example-build-image" .
+
+2. Create container 
+docker create --name go-example-build go-example-build-image
+
+3. Copy from container 
+docker cp go-example-build:/go/bin/go-example ./tmp/
+[coenraadl@rdr-ap-cld1m Go_tut]$ mkdir tmp
+[coenraadl@rdr-ap-cld1m Go_tut]$ docker cp go-example-build:/go/bin/go-example ./tmp/
+[coenraadl@rdr-ap-cld1m Go_tut]$ ./tmp/go-example 
+Ho, Ho Ho !
+2018/12/28 13:30:15 Ho, Ho Ho !
+2018/12/28 13:30:15 IP: 172.16.236.102
+2018/12/28 13:30:15 IP: 192.168.122.1
+2018/12/28 13:30:15 IP: 172.17.0.1
+2018/12/28 13:30:15 IP: 10.42.0.0
+2018/12/28 13:31:01 new request /hello
+2018/12/28 13:31:01 Bye!!
+2018/12/28 13:31:16 new request /getIP
+2018/12/28 13:31:16 IPs:
+2018/12/28 13:31:16 172.16.236.102
+192.168.122.1
+172.17.0.1
+10.42.0.0
+
+2018/12/28 13:31:16 404
+2018/12/28 13:31:16 http: multiple response.WriteHeader calls
+^C
+[coenraadl@rdr-ap-cld1m Go_tut]$ docker cp go-example-build:/etc/ssl/certs/ca-certificates.crt ./tmp/
+[coenraadl@rdr-ap-cld1m Go_tut]$ docker cp go-example-build:/etc/passwd ./tmp/   
+
+
+Remove container 
+
+docker rm go-example-build
+
+
+Create Dockerfile
+
+FROM scratch
+
+COPY ./tmp/ca-certificates.crt /etc/ssl/certs/
+COPY ./tmp/passwd       /etc/
+COPY ./tmp/go-example   /go/bin/go-example
+
+USER appuser
+
+ENTRYPOINT ["/go/bin/go-example "]
+~                                                                                                                                   
+Build Docker Dockerfile
+
+
+Build an image from a Dockerfile
+[coenraadl@rdr-ap-cld1m Go_tut]$ docker build -t "go-example-image" .
+Sending build context to Docker daemon 8.771 MB
+Step 1/6 : FROM scratch
+ ---> 
+Step 2/6 : COPY ./tmp/ca-certificates.crt /etc/ssl/certs/
+ ---> 956f38d1b972
+Removing intermediate container 92d1b8034b76
+Step 3/6 : COPY ./tmp/passwd /etc/
+ ---> 71ca34a339b9
+Removing intermediate container 5e166ae8641e
+Step 4/6 : COPY ./tmp/go-example /go/bin/go-example
+ ---> 05b048c8f45a
+Removing intermediate container 2eecac44c404
+Step 5/6 : USER appuser
+ ---> Running in 33cd36435258
+ ---> 43d98adc50c9
+Removing intermediate container 33cd36435258
+Step 6/6 : ENTRYPOINT /go/bin/go-example 
+ ---> Running in 9a67a94db7bd
+ ---> 35574a93c652
+Removing intermediate container 9a67a94db7bd
+Successfully built 35574a93c652
+
+
+---------------------------------------------------------------------------------
+
+
+
+                                            

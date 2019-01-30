@@ -1,0 +1,132 @@
+$ My little Book of Install Rancher Kuberenetes On Ubuntu $$$
+
+Pre setup on all servers
+
+*.Update etc/hosts and dns must be configured.
+
+Example
+##### Kube 1.4
+
+172.24.78.21  sdr-cont-lab01  sdr-cont-lab01
+172.24.78.22  sdr-cont-lab02  sdr-cont-lab02
+172.24.78.23  sdr-cont-lab03  sdr-cont-lab03
+172.24.78.24  sdr-cont-lab04  sdr-cont-lab04
+
+*. Disable swap and Selinux
+As root disable swap
+swapoff -a
+
+
+adduser kube
+passwd k
+
+sudo echo "kube ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/kube
+sudo chmod 0440 /etc/sudoers.d/kube
+
+
+
+add Hostfile 
+
+13.56.1.20 ceph-deploy
+13.56.1.21 ceph-node1
+13.56.1.22 ceph-node2
+
+Example!!!
+
+ssh-keygen 
+Create key 
+
+ssh-copy-id ceph-admin@ceph-deploy  
+ssh-copy-id ceph-admin@ceph-node1 
+ssh-copy-id ceph-admin@ceph-node2
+
+Moves keys
+
+
+nano ssh-ceph.sh 
+#!/bin/bash
+ssh-copy-id kube@ceph-deploy  
+ssh-copy-id kube@ceph-node1 
+ssh-copy-id kube@ceph-node2
+
+
+*.Install software:
+
+$ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+$ sudo touch /etc/apt/sources.list.d/kubernetes.list 
+$ echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+$ sudo apt-get update
+
+sudo apt-get install -y docker.io kubelet kubeadm kubectl kubernetes-cni
+sudo systemctl enable docker && sudo systemctl start docker
+sudo systemctl enable kubelet && sudo systemctl start kubelet
+
+sudo usermod -a -G docker kube
+
+Create ssh env.
+
+ssh-keygen "just hit enter"
+
+copy to all hosts
+ ssh-copy-id kube@172.24.78.61
+
+
+
+Now Create your kube user and user must be part of docker group
+
++++ RKE
+ rke up --config ./rancher-cluster.yml
+
+ nodes:
+   - address: 13.56.1.20
+     user: kube
+     role: [controlplane,worker,etcd]
+   - address: 13.56.1.21
+     user: kube
+     role: [controlplane,worker,etcd]
+   - address: 13.56.1.22
+     user: kube
+     role: [controlplane,worker,etcd]
+
+ services:
+   etcd:
+     snapshot: true
+     creation: 6h
+     retention: 24h
+   network:
+     plugin: calico
+     options: {}
+
+     
+ cp kube_config_rancher-cluster.yml  ~/.kube/config
+
+sudo snap install helm --classic
+
++++Helm
+kubectl -n kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller   --clusterrole cluster-admin   --serviceaccount=kube-system:tiller
+helm init --service-account tiller
+kubectl -n kube-system  rollout status deploy/tiller-deploy
+
+kube@sdr-no-micro02:~/rke$ helm repo add rancher-latest https://releases.rancher.com/server-charts/latest      
+"rancher-latest" has been added to your repositories
+kube@sdr-no-micro02:~/rke$ helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+
+helm install stable/cert-manager      --name cert-manager      --namespace kube-system
+
+# Issues
+
+ kubectl label namespace kube-system certmanager.k8s.io/disable-validation=true
+ helm upgrade cert-manager stable/cert-manager       --reuse-values       --set webhook.enabled=true
+
+helm install rancher-stable/rancher --name rancher  --namespace cattle-system  --set hostname=sdr-cont-lab34
+
+ helm install stable/percona-xtradb-cluster --namespace db --name rpi-cluster-db
+
+
+###### Old stuff
+
+
+helm install rancher-latest/rancher        --name rancher        --namespace cattle-system        --set hostname=sdr-no-micro03.bankservafrica.ent        --set proxy="http://kube:Lafarge2008@172.16.27.90:8080/"       --set proxy="http://kube:Lafarge2008@172.16.27.90:8080/"
+** helm install rancher-latest/rancher        --name rancher        --namespace cattle-system        --set hostname=rdr-us-coenrad4.bankservafrica.ent        --set proxy="http://coenraadl:Lafarge2000@172.16.27.90:8080/"       --set proxy="https://coenraadl:Lafarge2000@172.16.27.90:8080/"
+

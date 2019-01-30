@@ -1,0 +1,25 @@
++My Little book of Docker/Kuberenetes install with PROXY +++ !!!
+
+Proxy setup 
+vi .bashrc
+export https_proxy="http://kube:=******@172.16.27.90:8080/"
+export http_proxy="http://kube:******@172.16.27.90:8080/"
+export ftp_proxy="http://kube:******@172.16.27.90:8080/"
+
+Create docker proxy !!!!!!
+
+sudo mkdir -p /etc/systemd/system/docker.service.d
+vi /etc/systemd/system/docker.service.d/http-proxy.conf 
+
+[Service]
+Environment="HTTP_PROXY=http://kube:******@172.16.27.90:8080/"
+
+
+vi /etc/systemd/system/docker.service.d/https-proxy.conf
+
+[Service]
+Environment="HTTPS_PROXY=http://kube:******@172.16.27.90:8080/"
+
+
+sudo service docker restart
+sudo service kubelet restart

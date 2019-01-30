@@ -1,0 +1,104 @@
++My Little Book of Creating a Docker Repo +++
+sudo -i
+sudo apt-get update
+sudo apt install docker docker.io 
+shutdown now
+sudo -i
+mkdir -p certs
+openssl req   -newkey rsa:4096 -nodes -sha256 -keyout certs/domain.key   -x509 -days 365 -out certs/domain.crt
+ls
+sudo docker run -d -p 5000:5000 --restart=always --name registry   -v certs:/certs   -e REGISTRY_HTTP_TLS_CERTIFICATE=certs/domain.crt   -e REGISTRY_HTTP_TLS_KEY=certs/domain.key   registry:2
+sudo docker ps
+sudo docker pull busybox 
+sudo docker images
+ip a
+
+sudo docker tag latest 172.24.78.111:5000/busybox
+sudo docker push  172.24.78.111:5000/busybox
+mkdir -p /etc/docker/certs.d/172.24.78.111:5000
+sudo mkdir -p /etc/docker/certs.d/172.24.78.111:5000
+cd certs/
+
+cd ..
+ls
+sudo cp * certs/domain /etc/docker/certs.d/172.24.78.111:5000/
+cd certs/
+ls
+sudo cp *  /etc/docker/certs.d/172.24.78.111:5000/
+cd /etc/docker/certs.d/172.24.78.111:5000/ 
+ls
+
+Follow these steps 
+
+1. On your Host Machine and Client Machine install Docker Engine
+
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
+sudo apt-get update
+sudo apt-get install docker.io docker
+
+
+2. Get a self signed certificate for your docker registry
+
+
+sudo vi /etc/ssl/openssl.cnf
+# Add this line
+#subjectAltName=IP:172.24.78.112
+mkdir -p certs/
+openssl req \
+  -newkey rsa:4096 -nodes -sha256 -keyout certs/domain.key \
+  -x509 -days 365 -out certs/domain.crt
+
+  3. Create your docker registry
+
+  sudo docker run -d -p 5000:5000 --restart=always --name registry \
+  -v /certs:/certs \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=certs/domain.crt \
+  -e REGISTRY_HTTP_TLS_KEY=certs/domain.key \
+  registry:2
+
+  sudo docker ps
+  # Should display
+  CONTAINER ID        IMAGE               COMMAND  ...                4b6bcbadf307        registry:2          entrypoint...
+  # now get the container id
+  sudo docker logs <container-id>
+  # if you didn't see any obvious error messages then you are good to go
+
+  4. Test the docker registry
+
+
+  # get busybox image from public dockerhub
+  sudo docker pull busybox 
+  # check the busybox image id
+  sudo docker images 
+  # tag the image for pushing
+  sudo docker tag <image-id> 192.168.0.2:5000/busybox
+  # test pushing the image
+  sudo docker push 192.168.0.2:5000/busybox
+  #! ERROR
+  The push refers to a repository [192.168.0.2:5000/busybox]
+  Get https://192.168.0.2:5000/v1/_ping: x509: certificate signed by unknown authority
+
+  How do we make docker engine trust our x509 certicate?
+
+mkdir -p /etc/docker/certs.d/192.168.0.2:5000
+cd /certs
+cp /certs/domain /etc/docker/certs.d/192.168.0.2:5000/
+cd /etc/docker/certs.d/192.168.0.2:5000/
+mv domains.crt ca.crt
+#reload docker daemon to use the certificate
+sudo service docker reload
+
+sudo mkdir -p /etc/docker/certs.d/172.24.78.112:5000
+cd certs/
+sudo cp *  /etc/docker/certs.d/172.24.78.112:5000/
+sudo cd /etc/docker/certs.d/172.24.78.112:5000/
+sudo mv domain.crt ca.crt
+#reload docker daemon to use the certificate
+sudo service docker reload
+  

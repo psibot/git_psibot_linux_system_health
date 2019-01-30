@@ -1,1 +1,234 @@
+* Install Rancher Kuberenetes On Redhat ***
 
+Pre setup on all servers
+
+*.Update etc/hosts and dns must be configured.
+
+Example
+##### Kube 1.4 
+
+172.16.34.101  spr-wb-web1m
+172.16.34.102  spr-wb-web2m
+172.16.34.103  spr-wb-web1n
+172.16.34.104  spr-wb-web2n
+172.16.34.105  spr-wb-web3n
+
+*. Disable swap and Selinux
+As root disable swap
+swapoff -a
+
+Also change fstab
+Example:
+/dev/mapper/rhel-swap                           swap                    swap    noauto          0 0
+
+
+*. Enable network bridge
+
+Example:
+
+[root@spr-ap-web1m ~]# cat /etc/sysc
+sysconfig/   sysctl.conf  sysctl.d/
+[root@spr-ap-web1m ~]# cat /etc/sysctl.conf
+# sysctl settings are defined through files in
+# /usr/lib/sysctl.d/, /run/sysctl.d/, and /etc/sysctl.d/.
+#
+# Vendors settings live in /usr/lib/sysctl.d/.
+# To override a whole file, create a new file with the same in
+# /etc/sysctl.d/ and put new settings there. To override
+# only specific settings, add a file with a lexically later
+# name in /etc/sysctl.d/ and put new settings there.
+#
+# For more information, see sysctl.conf(5) and sysctl.d(5).
+net.bridge.bridge-nf-call-iptables = 1
+
+sysctl -p
+
+
+*.Setup Firewall
+
+Create the script and run on all servers as root.
+
+firewalld-kube.sh
+
+
+#!/bin/bash
+# SCRIPT:  firewalld-kube.sh
+# REV: Version 1.0
+# PLATFORM: Linux
+# AUTHOR: Coenraad
+# PURPOSE:Setup Kubernetes And Rancher Firewall Rules
+#
+#
+#
+##########################################################
+########### DEFINE FILES AND VARIABLES HERE ##############
+##########################################################
+clear
+
+
+echo
+echo
+echo -e "This script will install kubernetes and Rancher Firewall Rules , swap will also be disabled  --- its a script not a program ---"
+echo -e "Have Fun ! ---- WILL INSTALL ONLY AS ROOT"
+echo -e "Ignore Duplicates I still need to work on this script"
+sleep 6
+
+LOG_DIR=/var/temp
+ROOT_UID=0
+LINES=50
+E_XCD=86
+E_NOTROOT=87
+
+# Run as root, of course.
+if [ "$UID" -ne "$ROOT_UID" ]
+then
+echo -e "\e[5m Must be root to run this script!"
+exit $E_NOTROOT
+fi
+if [ -n "$1" ]
+# Test whether command-line argument is present (non-empty).
+then
+lines=$1
+else
+lines=$LINES # Default, if not specified on command-line.
+fi
+
+# Switching swap off
+swapoff -a
+echo
+
+# Ports add on firewall
+
+firewall-cmd --add-port=10250/tcp --permanent
+firewall-cmd --add-port=10255/tcp --permanent
+firewall-cmd --add-port=10256/tcp --permanent
+firewall-cmd --add-port=2379/tcp --permanent
+firewall-cmd --add-port=2380/tcp --permanent
+firewall-cmd --add-port=3306/tcp --permanent
+firewall-cmd --add-port=4149/tcp --permanent
+firewall-cmd --add-port=443/tcp --permanent
+firewall-cmd --add-port=4444/tcp --permanent
+firewall-cmd --add-port=4567/tcp --permanent
+firewall-cmd --add-port=4568/tcp --permanent
+firewall-cmd --add-port=6443/tcp --permanent
+firewall-cmd --add-port=:port/tcp --permanent
+firewall-cmd --permanent --add-port=10250/tcp
+firewall-cmd --permanent --add-port=10251/tcp
+firewall-cmd --permanent --add-port=10252/tcp
+firewall-cmd --permanent --add-port=10254/tcp
+firewall-cmd --permanent --add-port=10255/tcp
+firewall-cmd --permanent --add-port=22/tcp
+firewall-cmd --permanent --add-port=2350-2390/tcp
+firewall-cmd --permanent --add-port=2376/tcp
+firewall-cmd --permanent --add-port=2379-2380/tcp
+firewall-cmd --permanent --add-port=2379/tcp
+firewall-cmd --permanent --add-port=2380/tcp
+firewall-cmd --permanent --add-port=30000-32767/tcp
+firewall-cmd --permanent --add-port=30000-32767/udp
+firewall-cmd --permanent --add-port=44134/tcp
+firewall-cmd --permanent --add-port=44135/tcp
+firewall-cmd --permanent --add-port=6443/tcp
+firewall-cmd --permanent --add-port=6783/tcp
+firewall-cmd --permanent --add-port=:port/tcp
+firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --permanent --add-port=8472/udp
+firewall-cmd --permanent --add-port=8879/tcp
+firewall-cmd --permanent --add-port=9099/tcp
+firewall-cmd --permanent --add-port=9200/tcp
+firewall-cmd --permanent --add-port=9200/tcp
+firewall-cmd  --reload
+
+
+echo -e "Check etc host setup!!!"
+ifconfig
+echo
+echo -e "Done"
+
+exit 0
+
+*.Install software:
+
+$ ARCH=x86_64
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-${ARCH}
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+
+yum install -y docker kubelet kubeadm kubectl kubernetes-cni
+systemctl enable docker && systemctl start docker
+systemctl enable kubelet && systemctl start kubelet
+
+
+Now Create your kube user and user must be part of docker group
+
+
+Example : kube 
+
+Now create ssh keys for each node
+
+ssh-keygen 
+
+Then copy to each node
+
+ssh-copy-id kube@***** 
+
+Must be done on all nodes.
+
+
++++ RKE Install 
+
+Download rke from github 
+
+Config Rancher cluster 
+
+ rke up --config ./rancher-cluster.yml
+
+ nodes:
+   - address: 172.16.236.242
+     user: kube
+     role: [controlplane]
+   - address: 172.16.236.243
+     user: kube
+     role: [worker,etcd]
+   - address: 172.16.236.244
+     user: kube
+     role: [worker,etcd]
+
+ services:
+   etcd:
+     snapshot: true
+     creation: 6h
+     retention: 24h
+   network:
+     plugin: calico
+     options: {}
+
+ cp kube_config_rancher-cluster.yml  ~/.kube/config
+
+
++++Helm install 
+kubectl -n kube-system create serviceaccount tiller
+kubectl create clusterrolebinding tiller   --clusterrole cluster-admin   --serviceaccount=kube-system:tiller
+helm init --service-account tiller
+kubectl -n kube-system  rollout status deploy/tiller-deploy
+
+Add helm charts
+
+ helm repo add rancher-latest https://releases.rancher.com/server-charts/latest  
+ helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+
+ helm repo update 
+
++++ Install Cert Manager
+
+helm install stable/cert-manager      --name cert-manager      --namespace kube-system
+
++++ Install Rancher 
+
+helm install rancher-latest/rancher        --name rancher        --namespace cattle-system        --set hostname=(your rancher host)     --set proxy="http://user:password@proxy:port/"       --set proxy="https://user:password@proxy:port/"

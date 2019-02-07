@@ -40,4 +40,11 @@ wget -q -O- 'https://download.eu.ceph.com/keys/release.asc' | sudo apt-key add -
 echo deb https://download.ceph.com/debian-luminous/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list
 apt update
 
+# Fix Bad Sectors on Disks ###
+as root
+
+e2fsck -B ***** /dev/sda1 --- 2 options for blocksize pick one.
+
+e2fsck -cfpv /dev/sda1
+
 

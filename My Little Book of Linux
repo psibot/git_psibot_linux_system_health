@@ -48,3 +48,8 @@ e2fsck -B ***** /dev/sda1 --- 2 options for blocksize pick one.
 e2fsck -cfpv /dev/sda1
 
 
+Docker save
+
+docker save quay.io/coreos/flannel:v0.11.0-amd64 | gzip -c > flannel.tgz
+
+gunzip -c flannel.tgz | docker load

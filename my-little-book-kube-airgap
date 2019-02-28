@@ -1,0 +1,290 @@
+# from memory -  run kubeadm init it will complain about docker images that it wants, I put them in download.txt then moved to a box with internet and did a docker pull on each one, Here I'm saving them to tgz files:
+
+ 
+for var in `sed 's,.*/\(.*\):\(.*\),\0X\1_\2,' download.txt`; do docker save ${var/X*/} |gzip -c > ${var/*X/}.tgz; done
+
+ls *.tgz
+
+copy files to master node
+
+[kube@sdr-us-mitch1m kube]$ for var in *; do gunzip -c  $var | docker load ; done
+
+[kube@sdr-us-mitch1m kube]$ sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+Your Kubernetes master has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of machines by running the following on each node
+as root:
+
+  kubeadm join 172.16.160.231:6443 --token emr9xm.2dbilnsbqjxtwbp3 --discovery-token-ca-cert-hash sha256:32126c993bdf2dc12eb93b785c0dc1710112e3a60ef1a2dfd046cc84e8b6a344
+
+[kube@sdr-us-mitch1m kube]$   mkdir -p $HOME/.kube
+[kube@sdr-us-mitch1m kube]$   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+[kube@sdr-us-mitch1m kube]$   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+[kube@sdr-us-mitch1n ~]$ sudo  kubeadm join 172.16.160.231:6443 --token emr9xm.2dbilnsbqjxtwbp3 --discovery-token-ca-cert-hash sha256:32126c993bdf2dc12eb93b785c0dc1710112e3a
+60ef1a2dfd046cc84e8b6a344
+[root@sdr-us-mitch2n ~]# vim /etc/hosts # add hostname
+[root@sdr-us-mitch2n ~]# echo -n  1 > /proc/sys/net/ipv4/ip_forward
+[kube@sdr-us-mitch2n ~]$ sudo  kubeadm join 172.16.160.231:6443 --token emr9xm.2dbilnsbqjxtwbp3 --discovery-token-ca-cert-hash sha256:32126c993bdf2dc12eb93b785c0dc1710112e3a60ef1a2dfd046cc84e8b6a344
+
+
+[kube@sdr-us-mitch1m kube]$ kubectl get all --all-namespaces  -o wide
+NAMESPACE     NAME                                         READY   STATUS    RESTARTS   AGE    IP               NODE             NOMINATED NODE   READINESS GATES
+kube-system   pod/coredns-86c58d9df4-q4rk2                 0/1     Pending   0          22m    <none>           <none>           <none>           <none>
+kube-system   pod/coredns-86c58d9df4-s8lcb                 0/1     Pending   0          22m    <none>           <none>           <none>           <none>
+kube-system   pod/kube-proxy-78b5m                         0/1     ContainerCreating   0          6m45s   172.16.160.232   sdr-us-mitch1n   <none>           <none>
+kube-system   pod/kube-proxy-xmr85                         0/1     ContainerCreating   0          23s     172.16.160.233   sdr-us-mitch2n   <none>           <none>
+
+## Pending coredns is ok, but need to fix the kube-proxy
+
+[kube@sdr-us-mitch1m kube]$ scp kube-proxy_v1.13.3.tgz 172.16.160.232:~/kube/
+[kube@sdr-us-mitch1m kube]$ scp kube-proxy_v1.13.3.tgz 172.16.160.233:~/kube/
+
+[kube@sdr-us-mitch1n kube]$ gunzip kube-proxy_v1.13.3.tgz -c |docker load
+[kube@sdr-us-mitch2n kube]$  gunzip kube-proxy_v1.13.3.tgz -c |docker load
+
+[kube@sdr-us-mitch1m kube]$ kubectl get all --all-namespaces  -o wide
+NAMESPACE     NAME                                         READY   STATUS              RESTARTS   AGE     IP               NODE             NOMINATED NODE   READINESS GATES
+kube-system   pod/kube-proxy-78b5m                         0/1     ContainerCreating   0          6m45s   172.16.160.232   sdr-us-mitch1n   <none>           <none>
+kube-system   pod/kube-proxy-xmr85                         0/1     ContainerCreating   0          23s     172.16.160.233   sdr-us-mitch2n   <none>           <none>
+
+[kube@sdr-us-mitch1m kube]$ kubectl describe pod/kube-proxy-78b5m -n kube-system
+...
+  Warning  FailedCreatePodSandBox  2m14s (x49 over 12m)  kubelet, sdr-us-mitch1n  Failed create pod sandbox: rpc error: code = Unknown desc = failed pulling image "k8s.gcr.io/pause:3.1": Get https://k8s.gcr.io/v1/_ping: dial tcp 66.102.1.82:443: connect: connection refused
+[kube@sdr-us-mitch1m kube]$ scp pause_3.1.tgz 172.16.160.232:~/kube/
+[kube@sdr-us-mitch1m kube]$ scp pause_3.1.tgz 172.16.160.233:~/kube/
+
+[kube@sdr-us-mitch1n kube]$ gunzip pause_3.1.tgz -c |docker load
+[kube@sdr-us-mitch2n kube]$ gunzip pause_3.1.tgz -c |docker load
+
+[kube@sdr-us-mitch1m kube]$ kubectl get all --all-namespaces  -o wide
+NAMESPACE     NAME                                         READY   STATUS    RESTARTS   AGE    IP               NODE             NOMINATED NODE   READINESS GATES
+kube-system   pod/coredns-86c58d9df4-q4rk2                 0/1     Pending   0          22m    <none>           <none>           <none>           <none>
+kube-system   pod/coredns-86c58d9df4-s8lcb                 0/1     Pending   0          22m    <none>           <none>           <none>           <none>
+kube-system   pod/etcd-sdr-us-mitch1m                      1/1     Running   0          21m    172.16.160.231   sdr-us-mitch1m   <none>           <none>
+kube-system   pod/kube-apiserver-sdr-us-mitch1m            1/1     Running   0          22m    172.16.160.231   sdr-us-mitch1m   <none>           <none>
+kube-system   pod/kube-controller-manager-sdr-us-mitch1m   1/1     Running   0          21m    172.16.160.231   sdr-us-mitch1m   <none>           <none>
+kube-system   pod/kube-proxy-78b5m                         1/1     Running   0          15m    172.16.160.232   sdr-us-mitch1n   <none>           <none>
+kube-system   pod/kube-proxy-8n64f                         1/1     Running   0          22m    172.16.160.231   sdr-us-mitch1m   <none>           <none>
+kube-system   pod/kube-proxy-xmr85                         1/1     Running   0          9m9s   172.16.160.233   sdr-us-mitch2n   <none>           <none>
+kube-system   pod/kube-scheduler-sdr-us-mitch1m            1/1     Running   0          21m    172.16.160.231   sdr-us-mitch1m   <none>           <none>
+
+# Good - next need to install some networking
+
+## Want to go with flanner but can't grab the yaml from the internet, will just copy and paste to create the file.
+[kube@sdr-us-mitch1m kube]$ vi kube-flannel.yml
+[kube@sdr-us-mitch1m kube]$ grep image kube-flannel.yml
+        image: quay.io/coreos/flannel:v0.11.0-amd64
+        image: quay.io/coreos/flannel:v0.11.0-amd64
+        image: quay.io/coreos/flannel:v0.11.0-arm64
+        image: quay.io/coreos/flannel:v0.11.0-arm64
+        image: quay.io/coreos/flannel:v0.11.0-arm
+        image: quay.io/coreos/flannel:v0.11.0-arm
+        image: quay.io/coreos/flannel:v0.11.0-ppc64le
+        image: quay.io/coreos/flannel:v0.11.0-ppc64le
+        image: quay.io/coreos/flannel:v0.11.0-s390x
+        image: quay.io/coreos/flannel:v0.11.0-s390x
+
+### Guess I only need to get the amd64 image
+# Back to my box with internet
+$ docker pull quay.io/coreos/flannel:v0.11.0-amd64
+$ docker save quay.io/coreos/flannel:v0.11.0-amd64 |gzip -c > flannel_v0.11.0-amd64.tgz
+## copy ...
+[kube@sdr-us-mitch1m kube]$ scp flannel_v0.11.0-amd64.tgz 172.16.160.232:~/kube/
+[kube@sdr-us-mitch1m kube]$ scp flannel_v0.11.0-amd64.tgz 172.16.160.233:~/kube/
+
+
+## Let's see who needs it:
+[kube@sdr-us-mitch1m kube]$ kubectl apply -f kube-flannel.yml
+[kube@sdr-us-mitch1m kube]$ kubectl get pods -o wide --all-namespaces
+NAMESPACE     NAME                                     READY   STATUS                  RESTARTS   AGE   IP               NODE             NOMINATED NODE   READINESS GATES
+kube-system   kube-flannel-ds-amd64-jxchg              0/1     Init:ImagePullBackOff   0          23s   172.16.160.233   sdr-us-mitch2n   <none>           <none>
+kube-system   kube-flannel-ds-amd64-l4qt6              0/1     Init:ImagePullBackOff   0          23s   172.16.160.232   sdr-us-mitch1n   <none>           <none>
+kube-system   kube-flannel-ds-amd64-qtppk              0/1     Init:ImagePullBackOff   0          23s   172.16.160.231   sdr-us-mitch1m   <none>           <none>
+
+[kube@sdr-us-mitch1m kube]$ gunzip -c flannel_v0.11.0-amd64.tgz |docker load
+[kube@sdr-us-mitch1n kube]$ gunzip -c flannel_v0.11.0-amd64.tgz |docker load
+[kube@sdr-us-mitch2n kube]$ gunzip -c flannel_v0.11.0-amd64.tgz |docker load
+
+
+
+############# Fully working vanilla (air-gap) kube install:
+[kube@sdr-us-mitch1m kube]$ kubectl get all --all-namespaces
+NAMESPACE     NAME                                         READY   STATUS    RESTARTS   AGE
+kube-system   pod/coredns-86c58d9df4-q4rk2                 1/1     Running   0          45m
+kube-system   pod/coredns-86c58d9df4-s8lcb                 1/1     Running   0          45m
+kube-system   pod/etcd-sdr-us-mitch1m                      1/1     Running   0          44m
+kube-system   pod/kube-apiserver-sdr-us-mitch1m            1/1     Running   0          45m
+kube-system   pod/kube-controller-manager-sdr-us-mitch1m   1/1     Running   0          44m
+kube-system   pod/kube-flannel-ds-amd64-jxchg              1/1     Running   0          3m10s
+kube-system   pod/kube-flannel-ds-amd64-l4qt6              1/1     Running   0          3m10s
+kube-system   pod/kube-flannel-ds-amd64-qtppk              1/1     Running   0          3m10s
+kube-system   pod/kube-proxy-78b5m                         1/1     Running   0          38m
+kube-system   pod/kube-proxy-8n64f                         1/1     Running   0          45m
+kube-system   pod/kube-proxy-xmr85                         1/1     Running   0          32m
+kube-system   pod/kube-scheduler-sdr-us-mitch1m            1/1     Running   0          44m
+
+NAMESPACE     NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)         AGE
+default       service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP         46m
+kube-system   service/kube-dns     ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP   45m
+
+NAMESPACE     NAME                                     DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                     AGE
+kube-system   daemonset.apps/kube-flannel-ds-amd64     3         3         3       3            3           beta.kubernetes.io/arch=amd64     3m10s
+kube-system   daemonset.apps/kube-flannel-ds-arm       0         0         0       0            0           beta.kubernetes.io/arch=arm       3m10s
+kube-system   daemonset.apps/kube-flannel-ds-arm64     0         0         0       0            0           beta.kubernetes.io/arch=arm64     3m10s
+kube-system   daemonset.apps/kube-flannel-ds-ppc64le   0         0         0       0            0           beta.kubernetes.io/arch=ppc64le   3m10s
+kube-system   daemonset.apps/kube-flannel-ds-s390x     0         0         0       0            0           beta.kubernetes.io/arch=s390x     3m10s
+kube-system   daemonset.apps/kube-proxy                3         3         3       3            3           <none>                            45m
+
+NAMESPACE     NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+kube-system   deployment.apps/coredns   2/2     2            2           45m
+
+NAMESPACE     NAME                                 DESIRED   CURRENT   READY   AGE
+kube-system   replicaset.apps/coredns-86c58d9df4   2         2         2       45m
+[kube@sdr-us-mitch1m kube]$ kubectl get nodes
+NAME             STATUS   ROLES    AGE   VERSION
+sdr-us-mitch1m   Ready    master   46m   v1.13.3
+sdr-us-mitch1n   Ready    <none>   38m   v1.13.3
+sdr-us-mitch2n   Ready    <none>   32m   v1.13.3
+
+
+##### TODO: metalLB and rook/ceph
+
+
+## MetalLB
+[kube@sdr-us-mitch1m metallb]$ vi metallb.yaml
+[kube@sdr-us-mitch1m metallb]$ vi config.yaml
+grep "image: " metallb.yaml  |sed "s/.*: //" > download.txt
+
+
+## Internet box: Docker pull and save
+$ docker pull metallb/speaker:v0.7.3
+$ metallb/controller:v0.7.3
+$ docker save metallb/speaker:v0.7.3  |gzip -c > speaker_v0.7.3.tgz
+$ docker save metallb/controller:v0.7.3 |gzip -c > controller_v0.7.3.tgz
+
+## Copy ...
+
+[kube@sdr-us-mitch1n metallb]$ gunzip -c controller_v0.7.3.tgz |docker load
+[kube@sdr-us-mitch1n metallb]$ gunzip -c speaker_v0.7.3.tgz |docker load
+
+[kube@sdr-us-mitch2n metallb]$ gunzip -c controller_v0.7.3.tgz |docker load
+[kube@sdr-us-mitch2n metallb]$ gunzip -c speaker_v0.7.3.tgz |docker load
+
+
+[kube@sdr-us-mitch1m metallb]$ kubectl apply -f metallb.yaml
+[kube@sdr-us-mitch1m metallb]$ kubectl get all -n metallb-system
+NAME                              READY   STATUS    RESTARTS   AGE
+pod/controller-7cc9c87cfb-fpdvf   1/1     Running   0          19s
+pod/speaker-grq9l                 1/1     Running   0          19s
+pod/speaker-skrhv                 1/1     Running   0          19s
+
+
+[kube@sdr-us-mitch1m metallb]$ kubectl apply -f config.yaml
+configmap/config created
+
+
+
+## rook/ceph
+# copy and paste 3 key yaml files
+[kube@sdr-us-mitch1m ceph]$ vi operator.yaml
+[kube@sdr-us-mitch1m ceph]$ vi cluster.yaml
+[kube@sdr-us-mitch1m ceph]$ vi storageclass.yaml
+
+[kube@sdr-us-mitch1m ceph]$ grep image: *.yaml
+cluster.yaml:    image: ceph/ceph:v13
+operator.yaml:                image:
+operator.yaml:        image: rook/ceph:master
+storageclass.yaml:    image: ceph/ceph:v13
+
+
+# A bit of cheating, I checked a running box and found that only these two images are used...
+### Iternet box:
+$ docker pull ceph/ceph:v13
+$ docker pull rook/ceph:master
+
+$ docker save rook/ceph:master |gzip -c > rook_master.tgz
+$ docker save ceph/ceph:v13 |gzip -c > ceph_v13.tgz
+
+## Copy ...
+[kube@sdr-us-mitch1m ceph]$ scp rook_master.tgz 172.16.160.232:~/ceph/
+[kube@sdr-us-mitch1m ceph]$ scp rook_master.tgz 172.16.160.233:~/ceph/
+
+[kube@sdr-us-mitch1n ceph]$ gunzip -c ceph_v13.tgz | docker load
+[kube@sdr-us-mitch1n ceph]$ gunzip -c rook_master.tgz | docker load
+
+[kube@sdr-us-mitch2n ceph]$ gunzip -c ceph_v13.tgz | docker load
+[kube@sdr-us-mitch2n ceph]$ gunzip -c rook_master.tgz | docker load
+
+[kube@sdr-us-mitch1m ceph]$ kubens rook-ceph-system
+
+[kube@sdr-us-mitch1m ceph]$ kubectl apply -f operator.yaml
+
+[kube@sdr-us-mitch1m ceph]$ kubectl get all
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/rook-ceph-agent-4s8t4                1/1     Running   0          35s
+pod/rook-ceph-agent-6fz9q                1/1     Running   0          35s
+pod/rook-ceph-operator-b996864dd-4rdfh   1/1     Running   0          3m41s
+pod/rook-discover-2hg5p                  1/1     Running   0          35s
+pod/rook-discover-ptpkh                  1/1     Running   0          35s
+
+
+## Looks good, edit cluster.yaml
+[kube@sdr-us-mitch1m ceph]$ vi cluster.yaml
+...
+  dataDirHostPath: /bsva/rook
+...
+    - path: /bsva/rook
+
+[kube@sdr-us-mitch1m ceph]$ kubens rook-ceph
+[kube@sdr-us-mitch1m ceph]$ kubectl get pods -w
+
+# wait for a bit...
+
+NAME                               READY   STATUS     RESTARTS   AGE
+rook-ceph-osd-1-6f784d6f-q6rx5   1/1   Running   0     5s
+
+# osd is the ones we want, one for each worker node.
+
+[kube@sdr-us-mitch1m ceph]$ kubectl apply -f storageclass.yaml
+cephblockpool.ceph.rook.io/replicapool created
+storageclass.storage.k8s.io/rook-ceph-block created
+
+### Set storage class to default
+[kube@sdr-us-mitch1m ceph]$ kubectl patch storageclass rook-ceph-block -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+storageclass.storage.k8s.io/rook-ceph-block patched
+[kube@sdr-us-mitch1m ceph]$ kubectl get storageclasses
+NAME                        PROVISIONER          AGE
+rook-ceph-block (default)   ceph.rook.io/block   4m27s
+
+
+
+# Expose ceph dashboard:
+[kube@sdr-us-mitch1m metallb]$ kubens rook-ceph
+[kube@sdr-us-mitch1m metallb]$ kubectl edit service/rook-ceph-mgr-dashboard
+## Change   type: ClusterIP
+## TO: type: LoadBalancer
+
+[kube@sdr-us-mitch1m metallb]$ kubectl get service
+NAME                      TYPE           CLUSTER-IP       EXTERNAL-IP      PORT(S)          AGE
+rook-ceph-mgr             ClusterIP      10.102.84.17     <none>           9283/TCP         17m
+rook-ceph-mgr-dashboard   LoadBalancer   10.104.200.167   172.16.160.234   8443:31706/TCP   17m
+rook-ceph-mon-a           ClusterIP      10.99.135.9      <none>           6789/TCP         17m
+rook-ceph-mon-b           ClusterIP      10.107.142.23    <none>           6789/TCP         17m
+rook-ceph-mon-c           ClusterIP      10.98.181.135    <none>           6789/TCP         17m
+
+https://172.16.160.234:8443/
+Username: admin
+Password: kubectl -n rook-ceph get secret rook-ceph-dashboard-password -o jsonpath="{['data']['password']}" | base64 --decode && echo

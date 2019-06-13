@@ -1,0 +1,85 @@
+*** My Little Book of DOcker-Mirror Harbour Ect. ****
+
+*. Disable swap and Selinux
+As root disable swap
+swapoff -a
+
+
+adduser kube
+
+sudo echo "kube ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/kube
+sudo chmod 0440 /etc/sudoers.d/kube
+
+$ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+$ sudo touch /etc/apt/sources.list.d/kubernetes.list 
+$ echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+$ sudo apt-get update
+
+$ sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose kubelet kubeadm kubectl kubernetes-cni
+
+
+Installing Clair 
+
+$ curl -L https://raw.githubusercontent.com/coreos/clair/master/contrib/compose/docker-compose.yml -o $HOME/docker-compose.yml
+$ mkdir $HOME/clair_config
+$ curl -L https://raw.githubusercontent.com/coreos/clair/master/config.yaml.sample -o $HOME/clair_config/config.yaml
+$ $EDITOR $HOME/clair_config/config.yaml # Edit database source to be postgresql://postgres:password@postgres:5432?sslmode=disable
+$ docker-compose -f $HOME/docker-compose.yml up -d
+
+
+Install Harbour with clair
+
+wget https://storage.googleapis.com/harbor-releases/release-1.7.0/harbor-offline-installer-v1.7.5.tgz
+
+tar xvf harbor-offline-installer-v1.7.5.tgz
+
+cd Harbour
+
+set up config in   vi harbor.cfg
+
+Required parameters:
+hostname: The target host's hostname, which is used to access the Portal and the registry service. It should be the IP address or the fully qualified domain name (FQDN) of your target machine, e.g., 192.168.1.10 or reg.yourdomain.com. Do NOT use localhost or 127.0.0.1 for the hostname - the registry service needs to be accessible by external clients!
+ui_url_protocol: (http or https. Default is http) The protocol used to access the Portal and the token/notification service. If Notary is enabled, this parameter has to be https. By default, this is http. To set up the https protocol, refer to Configuring Harbor with HTTPS Access.
+db_password: The root password for the PostgreSQL database used for db_auth. Change this password for any production use!
+max_job_workers: (default value is 10) The maximum number of replication workers in job service. For each image replication job, a worker synchronizes all tags of a repository to the remote destination. Increasing this number allows more concurrent replication jobs in the system. However, since each worker consumes a certain amount of network/CPU/IO resources, please carefully pick the value of this attribute based on the hardware resource of the host.
+customize_crt: (on or off. Default is on) When this attribute is on, the prepare script creates private key and root certificate for the generation/verification of the registry's token. Set this attribute to off when the key and root certificate are supplied by external sources. Refer to Customize Key and Certificate of Harbor Token Service for more info.
+ssl_cert: The path of SSL certificate, it's applied only when the protocol is set to https.
+ssl_cert_key: The path of SSL key, it's applied only when the protocol is set to https.
+secretkey_path: The path of key for encrypt or decrypt the password of a remote registry in a replication policy.
+log_rotate_count: Log files are rotated log_rotate_count times before being removed. If count is 0, old versions are removed rather than rotated.
+log_rotate_size: Log files are rotated only if they grow bigger than log_rotate_size bytes. If size is followed by k, the size is assumed to be in kilobytes. If the M is used, the size is in megabytes, and if G is used, the size is in gigabytes. So size 100, size 100k, size 100M and size 100G are all valid.
+http_proxy: Config http proxy for Clair, e.g. http://my.proxy.com:3128.
+https_proxy: Config https proxy for Clair, e.g. http://my.proxy.com:3128.
+no_proxy: Config no proxy for Clair, e.g. 127.0.0.1,localhost,core,registry.
+
+
+sudo ./install.sh --with-clair
+
+
+
+Push Image
+Tag an image for this project:
+docker tag SOURCE_IMAGE[:TAG] 14.56.1.114/library/IMAGE[:TAG]
+docker tag SOURCE_IMAGE[:TAG] 14.56.1.114/library/IMAGE[:TAG]
+Push an image to this project:
+docker push 14.56.1.114/library/IMAGE[:TAG]
+docker push 14.56.1.114/library/IMAGE[:TAG]
+
+
+

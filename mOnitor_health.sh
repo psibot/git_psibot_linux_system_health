@@ -55,6 +55,9 @@ echo
 echo -e  "\e[32m[+]\e[0m Starting Linux System Monitor\e[0m"
 echo 
 
+git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
+sh ~/.vim_runtime/install_awesome_vimrc.sh
+
 # Check if connected to Internet or not
 ping -c 1 google.com &> /dev/null && echo -e '\E[32m'"Server connected to Internet: $tecreset Connected" || echo -e '\E[32m'"Internet: $tecreset Disconnected"
 

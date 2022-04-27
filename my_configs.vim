@@ -1,6 +1,19 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
+" ls -l /usr/share/vim/vim80/colors
+colorscheme torte
+set paste
+set ruler
 
+" basic settings for yaml and python files
+autocmd FileType python setlocal ts=4 sts=4 sw=4 expandtab number autoindent
+autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab autoindent
+
+" folding can help troubleshoot indentation syntax
+set foldenable
+set foldlevelstart=20
+set foldmethod=indent
+nnoremap <space> za
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
@@ -23,6 +36,11 @@ Plugin 'thinca/vim-quickrun'
 Plugin 'ycm-core/YouCompleteMe'
 Plugin 'shougo/unite.vim'
 Plugin 'Shougo/deoplete.nvim'
+Plugin 'stephpy/vim-yaml'
+Plugin 'Einenlum/yaml-revealer'
+Plugin 'Yggdroot/indentLine'
+Plugin 'pedrohdz/vim-yaml-folds'
+Plugin 'dense-analysis/ale'
 " plugin from http://vim-scripts.org/vim/scripts.html
 " Plugin 'L9'
 " Git plugin not hosted on GitHub

@@ -36,8 +36,8 @@ chmod 0440 /etc/sudoers.d/$usersudo
        echo -e "\e[40;38;5;82m [-] \e[30;48;5;82m Uninstall the Evil THAT IS SNAP  ... \e[0m"
        echo
        echo
-       sudo apt update
-       sudo apt remove --purge snap snapd
+       #sudo apt update
+       #sudo apt remove --purge snap snapd
 
         echo
         echo -e "\e[40;38;5;82m [-] \e[30;48;5;82m Install FLATPACK   ... \e[0m"
@@ -51,7 +51,7 @@ chmod 0440 /etc/sudoers.d/$usersudo
 
 sudo apt update
 sudo apt install -y git python3 python3-pip rmlint-gui bleachbit curl wine64 wget vim sed netcat libxml2-utils nmap netcat wireshark tshark vim git gawk htop cmake gcc clang llvm rsync wireshark-dev
-sudo apt install -y nmap jq:
+sudo apt install -y nmap jq
 sudo apt install -y sublime-text
 sudo apt install -y code
 sudo apt install -y tor-middle-relay
@@ -71,15 +71,15 @@ pip3 install click-man
       echo -e "\e[40;38;5;82m [-] \e[30;48;5;82m Installing VIM and Vundle ... \e[0m"
       echo
       echo
-git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
-sh ~/.vim_runtime/install_awesome_vimrc.sh
-git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+#git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
+#sh ~/.vim_runtime/install_awesome_vimrc.sh
+#git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 
      echo
      echo -e "\e[40;38;5;82m [-] \e[30;48;5;82m Installing Nvidia... \e[0m"
      echo
      echo
-     sudo apt install -y nvidia-driver nvidia-cuda-toolkit
+    # sudo apt install -y nvidia-driver nvidia-cuda-toolkit
 
 
        echo
@@ -89,7 +89,7 @@ git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
        sudo apt install build-essential cmake vim-nox python3-dev
        sudo apt install mono-complete golang nodejs default-jdk npm
        cd ~/.vim/bundle/
-       git clone https://github.com/tabnine/YouCompleteMe.git
+       #git clone https://github.com/tabnine/YouCompleteMe.git
        cd YouCompleteMe
        python3 install.py --all
 
@@ -113,7 +113,7 @@ git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 wget -q https://storage.googleapis.com/golang/getgo/installer_linux
 chmod +x installer_linux
 ./installer_linux
-sudo apt install go --classic
+sudo apt install go
 
 # Add key and repo for MongoDB (4.0)
 #wget -qO - https://www.mongodb.org/static/pgp/server-4.0.asc |  sudo apt-key add -
@@ -127,7 +127,7 @@ sudo apt install go --classic
 #sudo apt-get install -y rabbitmq-server
 #sudo systemctl enable mongod
 #sudo systemctl start mongod
-
+exit
 #Install Comp HERE ---
 
 mkdir components
